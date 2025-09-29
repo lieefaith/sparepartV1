@@ -974,50 +974,68 @@
         })();
 
         document.addEventListener('DOMContentLoaded', function() {
-            const kategoriSelect = document.getElementById('kategori');
-            const jenisSelect = document.getElementById('jenisSparepart');
-            const tipeSelect = document.getElementById('typeSparepart');
-            const otherFields = document.querySelectorAll(
-                '#sparepartForm select:not(#kategori), #sparepartForm input, #sparepartForm textarea');
+    const kategoriSelect = document.getElementById('kategori');
+    const serialNumberInput = document.getElementById('serialNumber');
+    const jenisSelect = document.getElementById('jenisSparepart');
+    const tipeSelect = document.getElementById('typeSparepart');
+    const vendorSelect = document.getElementById('vendor');
 
-            otherFields.forEach(field => field.disabled = true);
+    // Semua field kecuali kategori & serialNumber
+    const otherFields = document.querySelectorAll(
+        '#sparepartForm select:not(#kategori), #sparepartForm input:not(#serialNumber), #sparepartForm textarea'
+    );
 
-            if (kategoriSelect) {
-                kategoriSelect.addEventListener('change', function() {
-                    const kategori = this.value;
+    // Fungsi untuk update status Serial Number
+    function updateSerialNumberField(kategori) {
+        if (!kategori || kategori === 'non-aset') {
+            serialNumberInput.disabled = true;
+            serialNumberInput.value = '';
+        } else if (kategori === 'aset') {
+            serialNumberInput.disabled = false;
+        }
+    }
 
-                    if (kategori) {
-                        otherFields.forEach(field => field.disabled = false);
+    // Inisialisasi: semua field disabled + serial number disabled
+    otherFields.forEach(field => field.disabled = true);
+    updateSerialNumberField(''); // disabled karena belum pilih kategori
 
-                        let filteredJenis = jenisData.filter(j => j.kategori === kategori);
+    if (kategoriSelect) {
+        kategoriSelect.addEventListener('change', function() {
+            const kategori = this.value;
 
-                        jenisSelect.innerHTML = '<option value="" selected>Pilih jenis sparepart</option>';
-                        filteredJenis.forEach(j => {
-                            const option = document.createElement('option');
-                            option.value = j.id;
-                            option.textContent = j.nama;
-                            jenisSelect.appendChild(option);
-                        });
+            if (kategori) {
+                otherFields.forEach(field => field.disabled = false);
+                updateSerialNumberField(kategori); // aktifkan/nonaktifkan SN
 
-                        let filteredTipe = tipeData.filter(t => t.kategori === kategori);
-                        tipeSelect.innerHTML = '<option value="" selected>Pilih tipe sparepart</option>';
-                        filteredTipe.forEach(t => {
-                            const option = document.createElement('option');
-                            option.value = t.id;
-                            option.textContent = t.nama;
-                            tipeSelect.appendChild(option);
-                        });
-
-                    } else {
-                        otherFields.forEach(field => field.disabled = true);
-
-                        jenisSelect.innerHTML = '<option value="" selected>Pilih jenis sparepart</option>';
-                        tipeSelect.innerHTML = '<option value="" selected>Pilih tipe sparepart</option>';
-                        vendorSelect.innerHTML = '<option value="" selected>Pilih vendor</option>';
-                    }
+                // Filter jenis & tipe
+                let filteredJenis = jenisData.filter(j => j.kategori === kategori);
+                jenisSelect.innerHTML = '<option value="" selected>Pilih jenis sparepart</option>';
+                filteredJenis.forEach(j => {
+                    const option = document.createElement('option');
+                    option.value = j.id;
+                    option.textContent = j.nama;
+                    jenisSelect.appendChild(option);
                 });
+
+                let filteredTipe = tipeData.filter(t => t.kategori === kategori);
+                tipeSelect.innerHTML = '<option value="" selected>Pilih tipe sparepart</option>';
+                filteredTipe.forEach(t => {
+                    const option = document.createElement('option');
+                    option.value = t.id;
+                    option.textContent = t.nama;
+                    tipeSelect.appendChild(option);
+                });
+            } else {
+                // Jika kategori dikosongkan
+                otherFields.forEach(field => field.disabled = true);
+                updateSerialNumberField(''); // disabled
+                jenisSelect.innerHTML = '<option value="" selected>Pilih jenis sparepart</option>';
+                tipeSelect.innerHTML = '<option value="" selected>Pilih tipe sparepart</option>';
+                if (vendorSelect) vendorSelect.innerHTML = '<option value="" selected>Pilih vendor</option>';
             }
         });
+    }
+});
 
         const jenisData = @json($jenis);
         const tipeData = @json($tipe);
