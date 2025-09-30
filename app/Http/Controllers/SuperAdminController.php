@@ -220,7 +220,7 @@ class SuperAdminController extends Controller
                 $snList = $pengiriman->details->pluck('sn')->toArray();
 
                 // Kurangi quantity di detail_barang berdasarkan serial_number
-                \App\Models\DetailBarang::whereIn('serial_number', $snList)
+                DetailBarang::whereIn('serial_number', $snList)
                     ->decrement('quantity', 1);
             }
 
