@@ -234,7 +234,7 @@ class SparepartController extends Controller
             'serial_number'  => 'nullable|string',
             'spk'            => 'nullable|string',
             'harga'          => 'nullable|numeric',
-            'quantity'       => 'required|integer|min:1',
+            'quantity'       => 'nullable|integer|min:1',
             'jenisSparepart' => 'required|exists:jenis_barang,id',
             'typeSparepart'  => 'required|exists:tipe_barang,id',
             'keterangan'     => 'nullable|string',
@@ -243,6 +243,10 @@ class SparepartController extends Controller
             'vendor'         => 'required|exists:vendor,id',
             'department'     => 'nullable|string'
         ]);
+
+        if ($request['kategori'] === 'aset') {
+        $request['quantity'] = 1;
+    }
 
         DB::transaction(function () use ($request) {
             $list = ListBarang::where('jenis_id', $request->jenisSparepart)
