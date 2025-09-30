@@ -19,45 +19,39 @@
         </div>
     </div>
 
-    <div class="filter-card">
-        <h5 class="mb-4"><i class="bi bi-funnel me-2"></i>Filter Data</h5>
+    <!-- Ganti bagian filter-card jadi form GET -->
+<div class="filter-card">
+    <h5 class="mb-4"><i class="bi bi-funnel me-2"></i>Filter Data</h5>
+    <form method="GET" action="{{ route('kepalagudang.history.index') }}">
         <div class="row">
             <div class="col-md-3 mb-3">
                 <label for="dateFrom" class="form-label">Dari Tanggal</label>
-                <input type="date" class="form-control" id="dateFrom">
+                <input type="date" class="form-control" id="dateFrom" name="date_from" value="{{ request('date_from') }}">
             </div>
             <div class="col-md-3 mb-3">
                 <label for="dateTo" class="form-label">Sampai Tanggal</label>
-                <input type="date" class="form-control" id="dateTo">
+                <input type="date" class="form-control" id="dateTo" name="date_to" value="{{ request('date_to') }}">
             </div>
-            <!-- <div class="col-md-3 mb-3">
-                <label for="jenisFilter" class="form-label">Jenis</label>
-                <select class="form-select" id="jenisFilter">
-                    <option value="">Semua Jenis</option>
-                    <option value="masuk">Masuk</option>
-                    <option value="keluar">Keluar</option>
-                </select>
-            </div> -->
             <div class="col-md-3 mb-3">
                 <label for="statusFilter" class="form-label">Status</label>
-                <select class="form-select" id="statusFilter">
+                <select class="form-select" id="statusFilter" name="status">
                     <option value="">Semua Status</option>
-                    <option value="dikirim">Dikirim</option>
-                    <option value="disetujui">Disetujui</option>
-                    <option value="diproses">Diproses</option>
-                    <option value="ditolak">Ditolak</option>
+                    <option value="disetujui" {{ request('status') == 'disetujui' ? 'selected' : '' }}>Disetujui</option>
+                    <option value="ditolak" {{ request('status') == 'ditolak' ? 'selected' : '' }}>Ditolak</option>
+                    <option value="diproses" {{ request('status') == 'diproses' ? 'selected' : '' }}>On Progress</option>
                 </select>
             </div>
         </div>
         <div class="d-flex justify-content-end">
-            <button class="btn btn-light me-2">
+            <a href="{{ route('kepalagudang.history.index') }}" class="btn btn-light me-2">
                 <i class="bi bi-arrow-clockwise me-1"></i> Reset
-            </button>
-            <button class="btn btn-primary">
+            </a>
+            <button type="submit" class="btn btn-primary">
                 <i class="bi bi-search me-1"></i> Terapkan Filter
             </button>
         </div>
-    </div>
+    </form>
+</div>
 
     <div class="d-flex justify-content-end mb-3">
         <button class="btn btn-export">
@@ -77,7 +71,7 @@
                         <th>Detail</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="history-table-body">
                     @foreach($requests as $req)
                         <tr>
                             <td><span class="fw-bold">{{ $req->tiket }}</span></td>
