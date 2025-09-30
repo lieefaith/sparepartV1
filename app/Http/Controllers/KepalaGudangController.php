@@ -20,10 +20,12 @@ use Illuminate\Support\Facades\Log;
 
 class KepalaGudangController extends Controller
 {
+
     public function dashboard(Request $request)
     {
         $date = $request->input('date', Carbon::today()->toDateString());
 
+        // --- Barang Masuk ---
         $groups = DB::table('detail_barang')
             ->select('jenis_id', 'tipe_id', DB::raw('SUM(quantity) as total_qty'), DB::raw('MAX(id) as latest_id'))
             ->whereDate('tanggal', $date)
@@ -31,50 +33,66 @@ class KepalaGudangController extends Controller
             ->get();
 
         if ($groups->isEmpty()) {
-            $detail = collect();
-            $totalPerDay = 0;
-            return view('kepalagudang.dashboard', compact('detail', 'date', 'totalPerDay'));
+            $detailMasuk = collect();
+            $totalMasuk = 0;
+        } else {
+            $latestIds = $groups->pluck('latest_id')->filter()->all();
+            $latestRecords = DetailBarang::with(['jenis', 'tipe'])
+                ->whereIn('id', $latestIds)
+                ->get()
+                ->keyBy('id');
+
+            $detailMasuk = $groups->map(function ($g) use ($latestRecords, $date) {
+                $r = $latestRecords->get($g->latest_id);
+                return (object) [
+                    'id' => $g->latest_id,
+                    'tiket_sparepart' => $r ? $r->tiket_sparepart : null,
+                    'jenis_nama' => $r && $r->jenis ? $r->jenis->nama : null,
+                    'tipe_nama' => $r && $r->tipe ? $r->tipe->nama : null,
+                    'total_qty' => (int) $g->total_qty,
+                    'tanggal' => $r ? $r->tanggal : $date,
+                ];
+            })->sortByDesc('tiket_sparepart')->values();
+
+            $totalMasuk = $groups->sum('total_qty');
         }
 
-        $latestIds = $groups->pluck('latest_id')->filter()->all();
-
-        $latestRecords = DetailBarang::with(['jenis', 'tipe'])
-            ->whereIn('id', $latestIds)
+        // --- Barang Keluar ---
+        $detailKeluar = PengirimanDetail::with('pengiriman')
+            ->whereHas('pengiriman', function ($query) use ($date) {
+                $query->whereDate('tanggal_transaksi', $date);
+            })
+            ->orderBy('id', 'desc')->take(5)
             ->get()
-            ->keyBy('id');
+            ->map(function ($item) {
+                return (object) [
+                    'id' => $item->id,
+                    'nama_barang' => $item->nama ?? '-',
+                    'jumlah' => $item->jumlah ?? 0,
+                    'tanggal' => $item->pengiriman?->tanggal_transaksi ?? '-',
+                    'tiket' => $item->tiket_pengiriman ?? '-',
+                ];
+            });
 
-        $rows = $groups->map(function ($g) use ($latestRecords, $date) {
-            $r = $latestRecords->get($g->latest_id);
+        $totalKeluar = PengirimanDetail::whereHas('pengiriman', function ($query) use ($date) {
+            $query->whereDate('tanggal_transaksi', $date);
+        })->sum('jumlah');
 
-
-            $jenis_nama = $r && $r->jenis ? $r->jenis->nama : null;
-            $tipe_nama = $r && $r->tipe ? $r->tipe->nama : null;
-
-            return (object) [
-                'id' => $g->latest_id,
-                'tiket_sparepart' => $r ? $r->tiket_sparepart : null,
-                'nama_barang' => $r ? $r->nama_barang : null,
-                'qty_record' => $r ? $r->quantity : 0,
-                'jenis' => $r ? $r->jenis : (object) ['id' => $g->jenis_id, 'nama' => $jenis_nama],
-                'tipe' => $r ? $r->tipe : (object) ['id' => $g->tipe_id, 'nama' => $tipe_nama],
-                'jenis_nama' => $jenis_nama,
-                'tipe_nama' => $tipe_nama,
-                'total_qty' => (int) $g->total_qty,
-                'tanggal' => $r ? $r->tanggal : $date,
-            ];
-        })->sortByDesc('tiket_sparepart')->values();
-
-        $detail = $rows;
-        $totalPerDay = $groups->sum('total_qty');
-        $totalMasuk = DetailBarang::whereDate('tanggal', $date)->sum('quantity');
+        // --- Pending ---
         $totalPending = Permintaan::whereDate('tanggal_permintaan', $date)
             ->where('status_gudang', 'pending')
             ->count();
+        // ... (kode pending tetap sama)
 
-
-        return view('kepalagudang.dashboard', compact('detail', 'date', 'totalPerDay', 'totalMasuk', 'totalPending'));
+        return view('kepalagudang.dashboard', compact(
+            'detailMasuk',
+            'detailKeluar',
+            'totalMasuk',
+            'totalKeluar',
+            'totalPending',
+            'date'
+        ));
     }
-
     /**
      * Tampilkan daftar request yang sudah di-approve Kepala RO
      */
@@ -290,7 +308,6 @@ class KepalaGudangController extends Controller
     {
         try {
             $permintaan = Permintaan::where('tiket', $tiket)->first();
-            $pengiriman = Pengiriman::where('tiket_permintaan', $tiket)->first();
 
             // Ambil catatan dari request (opsional)
             $catatan = $request->input('catatan', 'Ditolak oleh Kepala Gudang');
@@ -306,10 +323,6 @@ class KepalaGudangController extends Controller
                 'catatan_gudang' => $catatan,
             ]);
 
-
-            $pengiriman->update([
-                'status' => 'rejected'
-            ]);
 
 
             // ✅ Kembalikan JSON sukses
@@ -335,7 +348,7 @@ class KepalaGudangController extends Controller
             Log::warning('approveGudang: unauthenticated attempt');
             return response()->json(['success' => false, 'message' => 'Anda harus login.'], 401);
         }
-        if ((int)$user->role !== 3) {
+        if ((int) $user->role !== 3) {
             Log::warning('approveGudang: access denied', ['user_id' => $user->id, 'role' => $user->role]);
             return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
         }
@@ -388,7 +401,8 @@ class KepalaGudangController extends Controller
 
             foreach ($request->items as $item) {
                 $sn = $item['sn'] ?? null;
-                if (!$sn) continue;
+                if (!$sn)
+                    continue;
 
                 $barang = $barangList->firstWhere('serial_number', $sn);
                 if (!$barang) {
@@ -463,7 +477,8 @@ class KepalaGudangController extends Controller
             }
 
             foreach ($uploadedFiles as $file) {
-                if (!$file->isValid()) continue;
+                if (!$file->isValid())
+                    continue;
                 $original = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
                 $ext = $file->getClientOriginalExtension();
                 $filename = time() . '_' . Str::slug($original) . '_' . Str::random(6) . '.' . $ext;
@@ -662,7 +677,7 @@ class KepalaGudangController extends Controller
     public function verifyClosedForm(Request $request, $tiket)
     {
         $permintaan = Permintaan::where('tiket', $tiket)->first();
-        if (! $permintaan) {
+        if (!$permintaan) {
             Log::warning('verifyClosedForm: tiket permintaan tidak ditemukan', ['tiket' => $tiket]);
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => 'Tiket tidak ditemukan'], 404);
@@ -671,7 +686,7 @@ class KepalaGudangController extends Controller
         }
 
         $pengiriman = Pengiriman::where('tiket_permintaan', $tiket)->first();
-        if (! $pengiriman) {
+        if (!$pengiriman) {
             Log::warning('verifyClosedForm: pengiriman tidak ditemukan untuk tiket', ['tiket' => $tiket]);
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => 'Data pengiriman tidak ditemukan'], 404);

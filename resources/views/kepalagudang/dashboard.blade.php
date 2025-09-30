@@ -27,7 +27,7 @@
                 <div class="card-icon bg-danger bg-opacity-10 text-danger">
                     <i class="bi bi-box-arrow-up"></i>
                 </div>
-                <h4 class="stats-number">15</h4>
+                <h4 class="stats-number">{{ $totalKeluar ?? 0 }}</h4>
                 <p class="stats-title">Barang Keluar</p>
             </div>
         </div>
@@ -66,11 +66,12 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($detail as $index => $d)
+                            @forelse($detailMasuk as $index => $d)
                                 <tr>
                                     <td>{{ $index + 1 }}</td>
                                     <td>{{ $d->jenis_nama ?? (optional($d->jenis)->nama ?? '-') }}
-                                        {{ $d->tipe_nama ?? (optional($d->tipe)->nama ?? '-') }}</td>
+                                        {{ $d->tipe_nama ?? (optional($d->tipe)->nama ?? '-') }}
+                                    </td>
                                     <td>{{ $d->total_qty }}</td>
                                     <td>{{ \Carbon\Carbon::parse($d->tanggal)->format('d M Y') }}</td>
                                 </tr>
@@ -106,18 +107,28 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">
-                                    <i class="bi bi-inbox display-4 d-block mb-2"></i>
-                                    Tidak ada data keluar
-                                </td>
-                            </tr>
+                            @forelse($detailKeluar as $index => $d)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ $d->nama_barang }}</td>
+                                    <td>{{ $d->jumlah }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($d->tanggal)->format('d M Y') }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                        Tidak ada data keluar
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
                 <div class="d-flex justify-content-end mt-3">
-                    <a href="#" class="btn btn-sm btn-outline-primary">Lihat Semua <i
-                            class="bi bi-arrow-right"></i></a>
+                    <a href="{{ route('kepalagudang.history.index') }}" class="btn btn-sm btn-outline-primary">
+                        Lihat Semua <i class="bi bi-arrow-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
@@ -142,7 +153,7 @@
 
         const navToggler = document.querySelector('.navbar-toggler');
         if (navToggler) {
-            navToggler.addEventListener('click', function() {
+            navToggler.addEventListener('click', function () {
                 const sb = document.querySelector('.sidebar');
                 if (sb) sb.classList.toggle('show');
             });
