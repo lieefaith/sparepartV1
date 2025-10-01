@@ -350,7 +350,7 @@ class KepalaGudangController extends Controller
             // ✅ Kembalikan JSON sukses
             return response()->json([
                 'success' => true,
-                'message' => 'Permintaan berhasil ditolak.'
+                'message' => 'Permintaan ditolak!'
             ]);
         } catch (\Exception $e) {
             // ✅ Tangani error & kembalikan JSON error
@@ -368,11 +368,11 @@ class KepalaGudangController extends Controller
         $user = Auth::user();
         if (!$user) {
             Log::warning('approveGudang: unauthenticated attempt');
-            return response()->json(['success' => false, 'message' => 'Anda harus login.'], 401);
+            return response()->json(['success' => false, 'message' => 'Anda harus login!'], 401);
         }
         if ((int) $user->role !== 3) {
             Log::warning('approveGudang: access denied', ['user_id' => $user->id, 'role' => $user->role]);
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return response()->json(['success' => false, 'message' => 'Akses ditolak!'], 403);
         }
 
         // jika items dikirim sebagai JSON string via FormData
@@ -384,7 +384,7 @@ class KepalaGudangController extends Controller
             } else {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Items JSON tidak valid.'
+                    'message' => 'Items JSON tidak valid!'
                 ], 422);
             }
         }
@@ -408,7 +408,7 @@ class KepalaGudangController extends Controller
             Log::info('approveGudang: validation failed', ['errors' => $validator->errors()->all()]);
             return response()->json([
                 'success' => false,
-                'message' => 'Data tidak valid.',
+                'message' => 'Data tidak valid!',
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -418,7 +418,7 @@ class KepalaGudangController extends Controller
         if ($serialNumbers->count() !== $serialNumbers->unique()->count()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Serial Number tidak boleh sama dalam satu pengiriman.'
+                'message' => 'Serial Number tidak boleh sama dalam satu pengiriman!'
             ], 422);
         }
 
@@ -444,7 +444,7 @@ class KepalaGudangController extends Controller
                 if (!$barang) {
                     return response()->json([
                         'success' => false,
-                        'message' => "SN '$sn' tidak ditemukan di database."
+                        'message' => "SN '$sn' tidak ditemukan dalam Daftar Sparepart!"
                     ], 422);
                 }
 
@@ -456,7 +456,7 @@ class KepalaGudangController extends Controller
             if (!empty($invalidSn)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak dapat mengirim: SN berikut stoknya habis: ' . implode(', ', $invalidSn)
+                    'message' => 'Tidak dapat mengirim, stok habis!' . implode(', ', $invalidSn)
                 ], 422);
             }
         }
@@ -471,7 +471,7 @@ class KepalaGudangController extends Controller
             if ($permintaan->status_gudang !== 'on progres') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Permintaan ini sudah diproses sebelumnya. Tidak dapat diproses ulang.'
+                    'message' => 'Permintaan ini sudah diproses sebelumnya. Tidak dapat diproses ulang!'
                 ], 400);
             }
 
@@ -557,7 +557,7 @@ class KepalaGudangController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Permintaan berhasil dikirim ke Admin untuk proses selanjutnya.',
+                'message' => 'Permintaan telah diteruskan ke Lead Infrastructure Maintenance!',
                 'tiket_pengiriman' => $tiketKirim,
                 'files' => array_map(fn($p) => asset('storage/' . $p), $storedPaths),
             ], 200);
@@ -588,7 +588,7 @@ class KepalaGudangController extends Controller
             if ($permintaan->status_gudang !== 'pending') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Permintaan sudah diproses.'
+                    'message' => 'Permintaan sudah diproses!'
                 ], 400);
             }
 
@@ -604,7 +604,7 @@ class KepalaGudangController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Permintaan berhasil ditolak.'
+                'message' => 'Permintaan ditolak!'
             ]);
         } catch (\Exception $e) {
             \Log::error("💥 ERROR DI REJECT(): " . $e->getMessage());
@@ -635,7 +635,7 @@ class KepalaGudangController extends Controller
         if (!$detail || !$detail->listBarang) {
             return response()->json([
                 'success' => false,
-                'message' => 'SN tidak ditemukan.',
+                'message' => 'SN tidak ditemukan!',
                 'item' => null,
             ], 200);
         }
@@ -716,7 +716,7 @@ class KepalaGudangController extends Controller
         if (!$permintaan) {
             Log::warning('verifyClosedForm: tiket permintaan tidak ditemukan', ['tiket' => $tiket]);
             if ($request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'Tiket tidak ditemukan'], 404);
+                return response()->json(['success' => false, 'message' => 'Tiket tidak ditemukan!'], 404);
             }
             return redirect()->back()->with('error', 'Tiket tidak ditemukan');
         }
@@ -725,7 +725,7 @@ class KepalaGudangController extends Controller
         if (!$pengiriman) {
             Log::warning('verifyClosedForm: pengiriman tidak ditemukan untuk tiket', ['tiket' => $tiket]);
             if ($request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'Data pengiriman tidak ditemukan'], 404);
+                return response()->json(['success' => false, 'message' => 'Data pengiriman tidak ditemukan!'], 404);
             }
             return redirect()->back()->with('error', 'Data pengiriman tidak ditemukan');
         }
@@ -755,7 +755,7 @@ class KepalaGudangController extends Controller
             Log::error('verifyClosedForm: gagal update status', ['tiket' => $tiket, 'message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
 
             if ($request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'Gagal menyimpan konfirmasi.'], 500);
+                return response()->json(['success' => false, 'message' => 'Gagal menyimpan konfirmasi!'], 500);
             }
             return redirect()->back()->with('error', 'Gagal menyimpan konfirmasi.');
         }
@@ -768,7 +768,7 @@ class KepalaGudangController extends Controller
             ->first();
 
         if (!$permintaan) {
-            return response()->json(['success' => false, 'message' => 'Permintaan tidak ditemukan.'], 404);
+            return response()->json(['success' => false, 'message' => 'Permintaan tidak ditemukan!'], 404);
         }
 
         // ambil pengiriman terkait (jika ada) beserta details dan attachments

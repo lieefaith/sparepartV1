@@ -181,7 +181,7 @@ class SuperAdminController extends Controller
             if ($permintaan->status_ro !== 'approved' || $permintaan->status_gudang !== 'approved') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Permintaan belum disetujui oleh RO/Gudang.'
+                    'message' => 'Permintaan belum disetujui oleh RO/Warehouse Head!'
                 ], 400);
             }
 
@@ -199,7 +199,7 @@ class SuperAdminController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Permintaan disetujui oleh Admin (Mbak Inong). Telah dikirim ke Super Admin.'
+                'message' => 'Permintaan telah diteruskan ke Departement Head Network Reliability!'
             ]);
         }
 
@@ -210,7 +210,7 @@ class SuperAdminController extends Controller
             if ($permintaan->status_admin !== 'approved') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Permintaan belum disetujui oleh Admin.'
+                    'message' => 'Permintaan belum disetujui oleh Lead Infrastrukture Maintenance! '
                 ], 400);
             }
 
@@ -237,7 +237,7 @@ class SuperAdminController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Permintaan disetujui final oleh Super Admin (Mas Septian). Barang siap dikirim.'
+                'message' => 'Barang siap dikirim!'
             ]);
         }
 
@@ -287,13 +287,13 @@ class SuperAdminController extends Controller
                     'status' => 'ditolak',
                 ]);
 
-                $pengiriman->update([
-                    'status' => 'on_delivery',
+                $pengiriman->update(attributes: [
+                    'status' => 'rejected',
                 ]);
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Permintaan ditolak oleh Admin.'
+                    'message' => 'Permintaan ditolak oleh Admin!'
                 ]);
             }
 
