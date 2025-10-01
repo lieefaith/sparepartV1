@@ -48,7 +48,7 @@ class SuperAdminController extends Controller
                 ];
             })->sortByDesc('tiket_sparepart')->values();
 
-            $totalMasuk = $groups->sum('total_qty');
+            $totalMasuk = $groups->count(); // ✅ INI YANG BENAR
         }
 
         // --- Barang Keluar ---
@@ -68,9 +68,8 @@ class SuperAdminController extends Controller
                 ];
             });
 
-        $totalKeluar = PengirimanDetail::whereHas('pengiriman', function ($query) use ($date) {
-            $query->whereDate('tanggal_transaksi', $date);
-        })->sum('jumlah');
+                $totalKeluar = Pengiriman::whereDate('tanggal_transaksi', $date)->count();
+
 
         // --- Pending ---
         $totalPending = Permintaan::whereDate('tanggal_permintaan', $date)

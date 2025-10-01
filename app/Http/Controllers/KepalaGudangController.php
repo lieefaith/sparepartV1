@@ -54,7 +54,7 @@ class KepalaGudangController extends Controller
                 ];
             })->sortByDesc('tiket_sparepart')->values();
 
-            $totalMasuk = $groups->sum('total_qty');
+            $totalMasuk = $groups->count(); // ✅ INI YANG BENAR
         }
 
         // --- Barang Keluar ---
@@ -74,15 +74,12 @@ class KepalaGudangController extends Controller
                 ];
             });
 
-        $totalKeluar = PengirimanDetail::whereHas('pengiriman', function ($query) use ($date) {
-            $query->whereDate('tanggal_transaksi', $date);
-        })->sum('jumlah');
+        $totalKeluar = Pengiriman::whereDate('tanggal_transaksi', $date)->count();
 
         // --- Pending ---
         $totalPending = Permintaan::whereDate('tanggal_permintaan', $date)
             ->where('status_gudang', 'pending')
             ->count();
-        // ... (kode pending tetap sama)
 
         return view('kepalagudang.dashboard', compact(
             'detailMasuk',
@@ -125,38 +122,38 @@ class KepalaGudangController extends Controller
 
     // app/Http/Controllers/KepalaGudangController.php
 
-public function historyIndex(Request $request)
-{
-    $query = Permintaan::with(['user', 'details'])
+    public function historyIndex(Request $request)
+    {
+        $query = Permintaan::with(['user', 'details'])
             ->where('status_gudang', '!=', 'pending');
 
 
-    // 🔹 Filter berdasarkan status
-    if ($request->filled('status')) {
-        $status = $request->status;
-        if ($status === 'disetujui') {
-            $query->where('status_gudang', 'approved');
-        } elseif ($status === 'ditolak') {
-            $query->where('status_gudang', 'rejected');
-        } elseif ($status === 'diproses') {
-            $query->where('status_gudang', 'on progres');
-        } elseif ($status === 'dikirim') {
-            $query->whereHas('pengiriman'); // jika ada relasi pengiriman
+        // 🔹 Filter berdasarkan status
+        if ($request->filled('status')) {
+            $status = $request->status;
+            if ($status === 'disetujui') {
+                $query->where('status_gudang', 'approved');
+            } elseif ($status === 'ditolak') {
+                $query->where('status_gudang', 'rejected');
+            } elseif ($status === 'diproses') {
+                $query->where('status_gudang', 'on progres');
+            } elseif ($status === 'dikirim') {
+                $query->whereHas('pengiriman'); // jika ada relasi pengiriman
+            }
         }
+
+        // 🔹 Filter berdasarkan tanggal
+        if ($request->filled('date_from') && $request->filled('date_to')) {
+            $query->whereBetween('tanggal_permintaan', [
+                $request->date_from,
+                $request->date_to
+            ]);
+        }
+
+        $requests = $query->orderBy('id', 'desc')->get();
+
+        return view('kepalagudang.history', compact('requests'));
     }
-
-    // 🔹 Filter berdasarkan tanggal
-    if ($request->filled('date_from') && $request->filled('date_to')) {
-        $query->whereBetween('tanggal_permintaan', [
-            $request->date_from,
-            $request->date_to
-        ]);
-    }
-
-    $requests = $query->orderBy('id', 'desc')->get();
-
-    return view('kepalagudang.history', compact('requests'));
-}
 
     public function historyDetailApi($tiket)
     {
