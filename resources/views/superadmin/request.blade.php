@@ -7,33 +7,32 @@
     <!-- Filter Card -->
     <div class="card mb-4">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label for="statusFilter" class="form-label">Status</label>
-                    <select class="form-select" id="statusFilter">
-                        <option value="">Semua Status</option>
-                        <option value="pending">Menunggu</option>
-                        <option value="approved">Disetujui</option>
-                        <option value="rejected">Ditolak</option>
-                    </select>
+            <form method="GET" action="{{ route('superadmin.request.index') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="start_date" class="form-label">Dari Tanggal</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date"
+                            value="{{ request('start_date') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="end_date" class="form-label">Sampai Tanggal</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date"
+                            value="{{ request('end_date') }}">
+                    </div>
+                    <div class="col-md-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-filter me-1"></i> Terapkan Filter
+                        </button>
+                        <a href="{{ route('superadmin.request.index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Reset
+                        </a>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <label for="dateFilter" class="form-label">Tanggal</label>
-                    <input type="date" class="form-control" id="dateFilter">
-                </div>
-                <div class="col-md-4">
-                    <label for="searchFilter" class="form-label">Pencarian</label>
-                    <input type="text" class="form-control" id="searchFilter"
-                        placeholder="Cari ID Request, Requester, atau Barang...">
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button class="btn btn-primary w-100">Terapkan Filter</button>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 
-    <!-- Stats Cards (Opsional - bisa dihapus jika tidak perlu) -->
+    <!-- Stats Cards -->
     @if ($requests->count() > 0)
         <div class="row g-3 mb-4">
             <div class="col-md-4">
@@ -44,12 +43,11 @@
                         </div>
                         <div>
                             <h6 class="mb-0">Total Request</h6>
-                            <h4 class="mb-0 fw-bold text-info">{{ $requests->total() }}</h4>
+                            <h4 class="mb-0 fw-bold text-info">{{ $totalRequests }}</h4>
                         </div>
                     </div>
                 </div>
             </div>
-            
         </div>
     @endif
 
@@ -217,7 +215,7 @@
     <script>
         window.allRequests = @json($requests->items());
         // Filter pencarian (client-side)
-        document.getElementById('searchFilter')?.addEventListener('keyup', function() {
+        document.getElementById('searchFilter')?.addEventListener('keyup', function () {
             const filter = this.value.toLowerCase();
             document.querySelectorAll('tbody tr').forEach(row => {
                 const text = row.textContent.toLowerCase();
@@ -227,7 +225,7 @@
 
         // Buka modal detail
         document.querySelectorAll('.btn-detail').forEach(button => {
-            button.addEventListener('click', function() {
+            button.addEventListener('click', function () {
                 const tiket = this.dataset.tiket;
                 const requester = this.dataset.requester;
                 const tanggal = this.dataset.tanggal;
@@ -257,12 +255,12 @@
                     req.details.forEach((item, index) => {
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${item.nama_item || '-'}</td>
-                    <td>${item.deskripsi || '-'}</td>
-                    <td>${item.jumlah || 0}</td>
-                    <td>${item.keterangan || '-'}</td>
-                `;
+                            <td>${index + 1}</td>
+                            <td>${item.nama_item || '-'}</td>
+                            <td>${item.deskripsi || '-'}</td>
+                            <td>${item.jumlah || 0}</td>
+                            <td>${item.keterangan || '-'}</td>
+                        `;
                         detailBody.appendChild(tr);
                     });
                 } else {
@@ -277,14 +275,14 @@
                     req.pengiriman.details.forEach((item, index) => {
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${item.nama_item || item.nama || '-'}</td>
-                    <td>${item.merk || '-'}</td>
-                    <td>${item.sn || '-'}</td>
-                    <td>${item.tipe || '-'}</td>
-                    <td>${item.jumlah || 0}</td>
-                    <td>${item.keterangan || '-'}</td>
-                `;
+                            <td>${index + 1}</td>
+                            <td>${item.nama_item || item.nama || '-'}</td>
+                            <td>${item.merk || '-'}</td>
+                            <td>${item.sn || '-'}</td>
+                            <td>${item.tipe || '-'}</td>
+                            <td>${item.jumlah || 0}</td>
+                            <td>${item.keterangan || '-'}</td>
+                        `;
                         pengirimanBody.appendChild(tr);
                     });
                     // Jika ada tanggal pengiriman, tampilkan juga
@@ -324,7 +322,7 @@
 
 
         // Approve
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             if (e.target.classList.contains('btn-approve-modal')) {
                 const tiket = e.target.dataset.tiket;
 
@@ -335,16 +333,16 @@
 
                 if (confirm('Apakah Anda yakin ingin menyetujui request ini?')) {
                     fetch(`/superadmin/request/${tiket}/approve`, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
-                                    'content'),
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                tiket: tiket
-                            })
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
+                                'content'),
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            tiket: tiket
                         })
+                    })
 
                         .then(response => response.json())
                         .then(data => {
@@ -364,7 +362,7 @@
         });
 
         // Reject
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             if (e.target.classList.contains('btn-reject-modal')) {
                 const tiket = e.target.dataset.tiket;
                 const reason = prompt('Masukkan alasan penolakan:');
@@ -376,16 +374,16 @@
 
                 if (reason) {
                     fetch(`/superadmin/request/${tiket}/reject`, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
-                                    'content'),
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                catatan: reason
-                            })
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
+                                'content'),
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            catatan: reason
                         })
+                    })
 
                         .then(response => response.json())
                         .then(data => {
