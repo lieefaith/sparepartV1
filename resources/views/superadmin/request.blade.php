@@ -177,7 +177,6 @@
                                 </tr>
                             </thead>
                             <tbody id="detail-pengiriman-body">
-
                                 <!-- Modal Konfirmasi Reject -->
                                 <div class="modal fade" id="modalReject" tabindex="-1">
                                     <div class="modal-dialog">
@@ -260,12 +259,12 @@
                     req.details.forEach((item, index) => {
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                                                    <td>${index + 1}</td>
-                                                    <td>${item.nama_item || '-'}</td>
-                                                    <td>${item.deskripsi || '-'}</td>
-                                                    <td>${item.jumlah || 0}</td>
-                                                    <td>${item.keterangan || '-'}</td>
-                                                `;
+                                                            <td>${index + 1}</td>
+                                                            <td>${item.nama_item || '-'}</td>
+                                                            <td>${item.deskripsi || '-'}</td>
+                                                            <td>${item.jumlah || 0}</td>
+                                                            <td>${item.keterangan || '-'}</td>
+                                                        `;
                         detailBody.appendChild(tr);
                     });
                 } else {
@@ -278,14 +277,14 @@
                     req.pengiriman.details.forEach((item, index) => {
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                                                    <td>${index + 1}</td>
-                                                    <td>${item.nama_item || item.nama || '-'}</td>
-                                                    <td>${item.merk || '-'}</td>
-                                                    <td>${item.sn || '-'}</td>
-                                                    <td>${item.tipe || '-'}</td>
-                                                    <td>${item.jumlah || 0}</td>
-                                                    <td>${item.keterangan || '-'}</td>
-                                                `;
+                                                            <td>${index + 1}</td>
+                                                            <td>${item.nama_item || item.nama || '-'}</td>
+                                                            <td>${item.merk || '-'}</td>
+                                                            <td>${item.sn || '-'}</td>
+                                                            <td>${item.tipe || '-'}</td>
+                                                            <td>${item.jumlah || 0}</td>
+                                                            <td>${item.keterangan || '-'}</td>
+                                                        `;
                         pengirimanBody.appendChild(tr);
                     });
                     if (req.pengiriman.tanggal_transaksi) {
@@ -354,57 +353,59 @@
         });
 
 
-        // Reject dengan SweetAlert
-        document.addEventListener('click', function (e) {
-            const btn = e.target.closest('.btn-reject-modal');
-            if (!btn) return;
+        // Fungsi Reject
+        function rejectRequest(tiket) {
+            const modalReject = new bootstrap.Modal(document.getElementById('modalReject'));
+            modalReject.show();
 
-            const tiket = btn.dataset.tiket;
-            if (!tiket) {
-                Swal.fire('Error', 'Tiket tidak ditemukan.', 'error');
-                return;
-            }
+            // Reset alasan
+            document.getElementById('rejectReason').value = '';
 
-            Swal.fire({
-                title: 'Tolak Permintaan',
-                input: 'textarea',
-                inputLabel: 'Alasan Penolakan',
-                inputPlaceholder: 'Tuliskan alasan penolakan di sini...',
-                showCancelButton: true,
-                confirmButtonText: 'Tolak',
-                cancelButtonText: 'Batal',
-                reverseButtons: true,
-                preConfirm: (reason) => {
-                    if (!reason) {
-                        Swal.showValidationMessage('Alasan tidak boleh kosong');
-                    }
-                    return reason;
+            // Handle klik "Tolak"
+            document.getElementById('btnConfirmReject').onclick = async function () {
+                const reason = document.getElementById('rejectReason').value.trim();
+                if (!reason) {
+                    Swal.fire('Peringatan', 'Alasan tidak boleh kosong.', 'warning');
+                    return;
                 }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const reason = result.value;
-                    fetch(`/superadmin/request/${tiket}/reject`, {
+
+                try {
+                    const res = await fetch(`/superadmin/request/${tiket}/reject`, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({ catatan: reason })
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire('Berhasil!', data.message, 'success').then(() => location.reload());
-                            } else {
-                                Swal.fire('Gagal!', data.message, 'error');
-                            }
-                        })
-                        .catch(err => {
-                            console.error('Error:', err);
-                            Swal.fire('Error', 'Terjadi kesalahan teknis.', 'error');
-                        });
+                    });
+
+                    const data = await res.json();
+                    modalReject.hide();
+
+                    if (data.success) {
+                        Swal.fire('Berhasil!', data.message, 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Gagal!', data.message, 'error');
+                    }
+                } catch (err) {
+                    modalReject.hide();
+                    Swal.fire('Error', 'Terjadi kesalahan teknis.', 'error');
                 }
-            });
-        })
+            };
+        }
+
+        // Event listener untuk tombol reject
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('btn-reject-modal')) {
+                const tiket = e.target.dataset.tiket;
+                if (tiket) {
+                    rejectRequest(tiket);
+                } else {
+                    Swal.fire('Error', 'Tiket tidak ditemukan.', 'error');
+                }
+            }
+        });
+
+
     </script>
 @endpush

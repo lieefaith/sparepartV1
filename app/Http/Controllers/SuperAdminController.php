@@ -68,7 +68,7 @@ class SuperAdminController extends Controller
                 ];
             });
 
-                $totalKeluar = Pengiriman::whereDate('tanggal_transaksi', $date)->count();
+        $totalKeluar = Pengiriman::whereDate('tanggal_transaksi', $date)->count();
 
 
         // --- Pending ---
@@ -88,50 +88,50 @@ class SuperAdminController extends Controller
     }
 
     public function requestIndex(Request $request)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    // 🔹 Query untuk TOTAL (tanpa filter tanggal)
-    $totalQuery = Permintaan::query();
-    if ($user->id === 15) {
-        $totalQuery->where('status_ro', 'approved')
-            ->where('status_gudang', 'approved')
-            ->whereNotIn('status_admin', ['approved', 'rejected']);
-    } elseif ($user->id === 16) {
-        $totalQuery->where('status_admin', 'approved')
-            ->whereNotIn('status_super_admin', ['approved', 'rejected']);
-    }
-    $totalRequests = $totalQuery->count();
+        // 🔹 Query untuk TOTAL (tanpa filter tanggal)
+        $totalQuery = Permintaan::query();
+        if ($user->id === 15) {
+            $totalQuery->where('status_ro', 'approved')
+                ->where('status_gudang', 'approved')
+                ->whereNotIn('status_admin', ['approved', 'rejected']);
+        } elseif ($user->id === 16) {
+            $totalQuery->where('status_admin', 'approved')
+                ->whereNotIn('status_super_admin', ['approved', 'rejected']);
+        }
+        $totalRequests = $totalQuery->count();
 
-    // 🔹 Query untuk TABEL (dengan filter tanggal)
-    $tableQuery = Permintaan::with(['user', 'details', 'pengiriman.details']);
-    
-    // Filter tanggal hanya untuk tabel
-    if ($request->filled('start_date')) {
-        $tableQuery->whereDate('tanggal_permintaan', '>=', $request->input('start_date'));
-    }
-    if ($request->filled('end_date')) {
-        $tableQuery->whereDate('tanggal_permintaan', '<=', $request->input('end_date'));
-    }
+        // 🔹 Query untuk TABEL (dengan filter tanggal)
+        $tableQuery = Permintaan::with(['user', 'details', 'pengiriman.details']);
 
-    // Role-based untuk tabel
-    if ($user->id === 15) {
-        $requests = $tableQuery->where('status_ro', 'approved')
-            ->where('status_gudang', 'approved')
-            ->whereNotIn('status_admin', ['approved', 'rejected'])
-            ->orderBy('id', 'desc')
-            ->paginate(10);
-    } elseif ($user->id === 16) {
-        $requests = $tableQuery->where('status_admin', 'approved')
-            ->whereNotIn('status_super_admin', ['approved', 'rejected'])
-            ->orderBy('id', 'desc')
-            ->paginate(10);
-    } else {
-        $requests = new LengthAwarePaginator([], 0, 10);
-    }
+        // Filter tanggal hanya untuk tabel
+        if ($request->filled('start_date')) {
+            $tableQuery->whereDate('tanggal_permintaan', '>=', $request->input('start_date'));
+        }
+        if ($request->filled('end_date')) {
+            $tableQuery->whereDate('tanggal_permintaan', '<=', $request->input('end_date'));
+        }
 
-    return view('superadmin.request', compact('requests', 'totalRequests'));
-}
+        // Role-based untuk tabel
+        if ($user->id === 15) {
+            $requests = $tableQuery->where('status_ro', 'approved')
+                ->where('status_gudang', 'approved')
+                ->whereNotIn('status_admin', ['approved', 'rejected'])
+                ->orderBy('id', 'desc')
+                ->paginate(10);
+        } elseif ($user->id === 16) {
+            $requests = $tableQuery->where('status_admin', 'approved')
+                ->whereNotIn('status_super_admin', ['approved', 'rejected'])
+                ->orderBy('id', 'desc')
+                ->paginate(10);
+        } else {
+            $requests = new LengthAwarePaginator([], 0, 10);
+        }
+
+        return view('superadmin.request', compact('requests', 'totalRequests'));
+    }
 
     public function historyIndex(Request $request)
     {
@@ -139,21 +139,30 @@ class SuperAdminController extends Controller
 
         $query = Permintaan::with(['user', 'details', 'pengiriman.details'])
             ->where(function ($q) use ($user) {
-                // Untuk Admin (ID 15): tampilkan yang dia approve/reject
+                // Untuk Admin (ID 15)
                 if ($user->id === 15) {
-                    $q->where('status_admin', 'approved')
-                        ->orWhere('status_admin', 'rejected');
+                    $q->where(function ($sub) {
+                        // Yang dia approve/ditolak
+                        $sub->where('status_admin', 'approved')
+                            ->orWhere('status_admin', 'rejected');
+                    })->orWhereHas('pengiriman', function ($pengiriman) {
+                        // Atau yang sudah dikirim (tanpa perlu approval dia)
+                        $pengiriman->whereNotNull('id');
+                    });
                 }
-                // Untuk Super Admin (ID 16): tampilkan yang dia approve/reject
+                // Untuk Super Admin (ID 16)
                 elseif ($user->id === 16) {
-                    $q->where('status_super_admin', 'approved')
-                        ->orWhere('status_super_admin', 'rejected');
+                    $q->where(function ($sub) {
+                        $sub->where('status_super_admin', 'approved')
+                            ->orWhere('status_super_admin', 'rejected');
+                    })->orWhereHas('pengiriman', function ($pengiriman) {
+                        $pengiriman->whereNotNull('id');
+                    });
                 }
             })
-            ->orWhereHas('pengiriman') // atau sudah dikirim
             ->orderBy('id', 'desc');
 
-        // Filter tanggal
+        // 🔹 Filter Tanggal
         if ($request->filled('dateFrom')) {
             $query->whereDate('tanggal_permintaan', '>=', $request->input('dateFrom'));
         }
@@ -161,8 +170,33 @@ class SuperAdminController extends Controller
             $query->whereDate('tanggal_permintaan', '<=', $request->input('dateTo'));
         }
 
-        $requests = $query->distinct()->paginate(10)->withQueryString();
+        // 🔹 Filter Status
+        if ($request->filled('statusFilter')) {
+            $status = $request->statusFilter;
+            if ($status === 'disetujui') {
+                if ($user->id === 15) {
+                    $query->where('status_admin', 'approved');
+                } else {
+                    $query->where('status_super_admin', 'approved');
+                }
+            } elseif ($status === 'ditolak') {
+                if ($user->id === 15) {
+                    $query->where('status_admin', 'rejected');
+                } else {
+                    $query->where('status_super_admin', 'rejected');
+                }
+            } elseif ($status === 'diproses') {
+                if ($user->id === 15) {
+                    $query->where('status_admin', 'on progres');
+                } else {
+                    $query->where('status_super_admin', 'on progres');
+                }
+            } elseif ($status === 'dikirim') {
+                $query->whereHas('pengiriman');
+            }
+        }
 
+        $requests = $query->distinct()->paginate(10)->withQueryString();
         return view('superadmin.history', compact('requests'));
     }
     /**
@@ -287,7 +321,7 @@ class SuperAdminController extends Controller
                     'status' => 'ditolak',
                 ]);
 
-                $pengiriman->update(attributes: [
+                $pengiriman->update([
                     'status' => 'rejected',
                 ]);
 

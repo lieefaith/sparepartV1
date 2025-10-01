@@ -22,7 +22,8 @@
                 <label for="statusFilter" class="form-label">Status</label>
                 <select class="form-select" id="statusFilter" name="statusFilter">
                     <option value="">Semua Status</option>
-                    <option value="disetujui" {{ request('statusFilter') == 'disetujui' ? 'selected' : '' }}>Disetujui</option>
+                    <option value="disetujui" {{ request('statusFilter') == 'disetujui' ? 'selected' : '' }}>Disetujui
+                    </option>
                     <option value="ditolak" {{ request('statusFilter') == 'ditolak' ? 'selected' : '' }}>Ditolak</option>
                     <option value="diproses" {{ request('statusFilter') == 'diproses' ? 'selected' : '' }}>Diproses</option>
                     <option value="dikirim" {{ request('statusFilter') == 'dikirim' ? 'selected' : '' }}>Dikirim</option>
@@ -64,43 +65,41 @@
                         <tr>
                             <td><span class="fw-bold">{{ $req->tiket }}</span></td>
                             <td>{{ $req->user->name ?? '-' }}</td>
-                           <td class="d-flex align-items-center gap-2">
-    <!-- Status Badge -->
-    @php
-        $status = '';
-        if ($req->status_super_admin === 'approved') {
-            $status = 'Disetujui';
-        } elseif ($req->status_super_admin === 'rejected') {
-            $status = 'Ditolak';
-        } elseif ($req->status_admin === 'on progres') {
-            $status = 'On Progress';
-        } elseif ($req->status_super_admin === 'pending' && $req->status_admin === 'approved') {
-            $status = 'On Progress';
-        } else {
-            $status = 'Pending';
-        }
+                            <td class="d-flex align-items-center gap-2">
+                                <!-- Status Badge -->
+                                @php
+                                    $status = '';
+                                    if ($req->status_super_admin === 'approved') {
+                                        $status = 'Disetujui';
+                                    } elseif ($req->status_super_admin === 'rejected') {
+                                        $status = 'Ditolak';
+                                    } elseif ($req->status_admin === 'on progres') {
+                                        $status = 'On Progress';
+                                    } elseif ($req->status_super_admin === 'pending' && $req->status_admin === 'approved') {
+                                        $status = 'On Progress';
+                                    } else {
+                                        $status = 'Pending';
+                                    }
 
-        // Warna badge
-        $bg = '';
-        if ($req->status_super_admin === 'approved') {
-            $bg = 'bg-success';
-        } elseif ($req->status_super_admin === 'rejected') {
-            $bg = 'bg-danger';
-        } elseif ($req->status_admin === 'on progres' || ($req->status_super_admin === 'pending' && $req->status_admin === 'approved')) {
-            $bg = 'bg-warning text-dark';
-        } else {
-            $bg = 'bg-secondary';
-        }
-    @endphp
+                                    // Warna badge
+                                    $bg = '';
+                                    if ($req->status_super_admin === 'approved') {
+                                        $bg = 'bg-success';
+                                    } elseif ($req->status_super_admin === 'rejected') {
+                                        $bg = 'bg-danger';
+                                    } elseif ($req->status_admin === 'on progres' || ($req->status_super_admin === 'pending' && $req->status_admin === 'approved')) {
+                                        $bg = 'bg-warning text-dark';
+                                    } else {
+                                        $bg = 'bg-secondary';
+                                    }
+                                @endphp
 
-    <span class="badge {{ $bg }}">
-        {{ $status }}
-    </span>
+                                <span class="badge {{ $bg }}">
+                                    {{ $status }}
+                                </span>
 
                                 <!-- 🔹 Ikon Mata - Tracking Approval -->
-                                <button 
-                                    type="button"
-                                    onclick="showStatusDetailModal('{{ $req->tiket }}', 'super_admin')"
+                                <button type="button" onclick="showStatusDetailModal('{{ $req->tiket }}', 'super_admin')"
                                     class="inline-flex items-center justify-center w-6 h-6 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition focus:outline-none"
                                     title="Lihat progres approval">
                                     <i class="fas fa-eye text-xs"></i>
@@ -123,20 +122,10 @@
     <!-- Pagination -->
     <div class="pagination-container d-flex justify-content-between align-items-center">
         <div class="text-muted">
-            Menampilkan 1 hingga 5 dari 25 entri
+            Menampilkan {{ $requests->firstItem() }} hingga {{ $requests->lastItem() }} dari {{ $requests->total() }} entri
         </div>
         <nav aria-label="Page navigation">
-            <ul class="pagination mb-0">
-                <li class="page-item disabled">
-                    <a class="page-link" href="#">Sebelumnya</a>
-                </li>
-                <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                <li class="page-item"><a class="page-link" href="#">2</a></li>
-                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                <li class="page-item">
-                    <a class="page-link" href="#">Selanjutnya</a>
-                </li>
-            </ul>
+            {{ $requests->links() }}
         </nav>
     </div>
 
@@ -263,12 +252,12 @@
                             data.permintaan.details.forEach((item, index) => {
                                 const tr = document.createElement('tr');
                                 tr.innerHTML = `
-                                    <td>${index + 1}</td>
-                                    <td>${item.nama_item}</td>
-                                    <td>${item.deskripsi || '-'}</td>
-                                    <td>${item.jumlah}</td>
-                                    <td>${item.keterangan || '-'}</td>
-                                `;
+                                        <td>${index + 1}</td>
+                                        <td>${item.nama_item}</td>
+                                        <td>${item.deskripsi || '-'}</td>
+                                        <td>${item.jumlah}</td>
+                                        <td>${item.keterangan || '-'}</td>
+                                    `;
                                 requestTable.appendChild(tr);
                             });
 
@@ -282,14 +271,14 @@
                                 data.pengiriman.details.forEach((item, index) => {
                                     const tr = document.createElement('tr');
                                     tr.innerHTML = `
-                                        <td>${index + 1}</td>
-                                        <td>${item.nama}</td>
-                                        <td>${item.merk || '-'}</td>
-                                        <td>${item.sn || '-'}</td>
-                                        <td>${item.tipe || '-'}</td>
-                                        <td>${item.jumlah}</td>
-                                        <td>${item.keterangan || '-'}</td>
-                                    `;
+                                            <td>${index + 1}</td>
+                                            <td>${item.nama}</td>
+                                            <td>${item.merk || '-'}</td>
+                                            <td>${item.sn || '-'}</td>
+                                            <td>${item.tipe || '-'}</td>
+                                            <td>${item.jumlah}</td>
+                                            <td>${item.keterangan || '-'}</td>
+                                        `;
                                     pengirimanTable.appendChild(tr);
                                 });
                             } else {
